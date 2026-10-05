@@ -1,0 +1,36 @@
+{
+  "url": "http://127.0.0.1:8080/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Veil",
+      "hasCanvas": false,
+      "bodyTextLen": 426,
+      "bodyTextHash": "53e76bde37cafae6ffc5a3cd6bbe9cdee3e1bdd82f0e2c4cc0160afa48901a33",
+      "bodyTextPrefix": "New tab Brave Search Wikipedia GitHub MDN Archive YouTube Reddit",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Veil",
+      "hasCanvas": false,
+      "bodyTextLen": 411,
+      "bodyTextHash": "e59f671bfa03a9aa5cad33953591cfe59c9278d032ff56699a7790b0eb1fe12c",
+      "bodyTextPrefix": "New tab Brave Search Wikipedia GitHub MDN Archive YouTube Reddit",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/app-builder-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/app-builder-preview.json"
+}
