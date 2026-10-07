@@ -8,24 +8,6 @@ export type StoredCookie = {
   httpOnly?: boolean;
 };
 
-function b64url(str: string): string {
-  const bytes = new TextEncoder().encode(str);
-  let bin = "";
-  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]!);
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-}
-
-function b64urlDecode(s: string): string {
-  const pad = s.length % 4 === 0 ? "" : "=".repeat(4 - (s.length % 4));
-  const b64 = s.replace(/-/g, "+").replace(/_/g, "/") + pad;
-  const bin = atob(b64);
-  return new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
-}
-
-function cookieName(tabId: string, domain: string, name: string): string {
-  return `v_${tabId}_${b64url(`${domain}\t${name}`)}`;
-}
-
 export function parseSetCookie(header: string, fallbackDomain: string): StoredCookie | null {
   const parts = header.split(";").map((p) => p.trim());
   const first = parts.shift();
@@ -77,45 +59,16 @@ export function jarToCookieHeader(cookies: StoredCookie[], url: URL): string {
     .join("; ");
 }
 
-export function setCookieToResponse(cookie: StoredCookie, tabId: string, reqUrl: URL): string {
-  const name = cookieName(tabId, cookie.domain, cookie.name);
-  const parts = [`${name}=${encodeURIComponent(cookie.value)}`, `Path=/p/`, `SameSite=Lax`];
-  if (reqUrl.protocol === "https:") parts.push("Secure");
-  if (cookie.httpOnly) parts.push("HttpOnly");
-  if (cookie.expires) parts.push(`Expires=${new Date(cookie.expires).toUTCString()}`);
-  return parts.join("; ");
+export function upsertCookie(jar: StoredCookie[], cookie: StoredCookie): StoredCookie[] {
+  const next = jar.filter(
+    (c) => !(c.domain === cookie.domain && c.name === cookie.name && c.path === cookie.path),
+  );
+  next.push(cookie);
+  return next;
 }
 
-export function readJarFromRequest(request: Request, tabId: string): StoredCookie[] {
-  const raw = request.headers.get("cookie");
-  if (!raw) return [];
-  const out: StoredCookie[] = [];
-  const prefix = `v_${tabId}_`;
-  for (const piece of raw.split(";")) {
-    const eq = piece.indexOf("=");
-    if (eq < 0) continue;
-    const name = piece.slice(0, eq).trim();
-    let value = piece.slice(eq + 1).trim();
-    try {
-      value = decodeURIComponent(value);
-    } catch {
-      /* keep raw */
-    }
-    if (!name.startsWith(prefix)) continue;
-    const packed = name.slice(prefix.length);
-    try {
-      const decoded = b64urlDecode(packed);
-      const cut = decoded.indexOf("\t");
-      if (cut < 1) continue;
-      out.push({
-        name: decoded.slice(cut + 1),
-        value,
-        domain: decoded.slice(0, cut),
-        path: "/",
-      });
-    } catch {
-      continue;
-    }
-  }
-  return out;
+export function readSid(request: Request): string {
+  const raw = request.headers.get("cookie") ?? "";
+  const match = /(?:^|;\s*)veil_sid=([^;]+)/.exec(raw);
+  return match ? decodeURIComponent(match[1]!) : "";
 }

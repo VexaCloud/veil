@@ -16,7 +16,7 @@ async function ping(url: string): Promise<{ ok: boolean; ms: number; status: num
       signal: AbortSignal.timeout(8000),
       headers: {
         "user-agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         accept: "*/*",
       },
     });

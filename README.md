@@ -1,48 +1,28 @@
-# Veil
+# Veil (Hacker114)
 
-A private window on the open web — a fully featured browser-in-browser proxy.
+A private, browser-in-browser web proxy: tabs, omnibox, `veil://` pages, stealth mode,
+incognito, built-in ad blocker (Ghostery engine + EasyList), dev tools, per-account
+encrypted storage, and a cloud file system.
+
+## Run
 
 ```bash
 npm install
-npm start
+npm start        # http://localhost:8080
 ```
 
-Open the app, type a site in the address bar, and Veil fetches it through a Node rewriting proxy. Engines, theming, adblock, stealth, history, downloads, and lock are all in Settings.
+`npm start` runs the Vite server on port 8080. The proxy's WebSocket and
+escaped-path layer (`scripts/veil-ws-plugin.mjs`) hooks that server, so use
+`npm start` to run Veil.
 
-Keyboard shortcuts use **Alt / Option** instead of Control so they work inside the host tab.
+## Supabase (optional — guests can use the proxy without it)
 
-## What you get
+1. Put your project URL and publishable key in [`supabase/config.json`](supabase/config.json).
+   Set `encryptionKey` to a long random string.
+2. Run [`supabase/full.sql`](supabase/full.sql) in the Supabase SQL editor
+   (tables, RLS, storage buckets). It is safe to re-run.
 
-- Multi-tab chrome with a new-tab page, shortcuts, and a real address bar
-- Selectable proxy engines: **NGINX** (default path-style reverse proxy), Ultraviolet, Mercury, Scramjet, Rammerhead
-- NGINX-style header / SSL configuration layer that applies to every engine
-- Per-tab cookie isolation, rewritten pages/assets/forms, and a WebSocket tunnel
-- Optional ad blocker (off by default) with EasyList-style filter lists
-- One-click stealth mode (Chrome client hints, WebRTC block, fingerprint resistance)
-- History, downloads, local password autofill, developer tools, speed test
-- Themes, layout, custom CSS, import/export, and a lock screen
-- Mobile layout and PWA install support
+## Internal pages
 
-All traffic goes through `/p/…`. There is no unproxied escape hatch for page loads.
-
-## Shortcuts
-
-| Shortcut | Action |
-| --- | --- |
-| Alt + T | New tab |
-| Alt + W | Close tab |
-| Alt + Shift + T | Reopen closed tab |
-| Alt + L / Alt + D | Focus address bar |
-| Alt + R | Reload |
-| Alt + [ / ] | Back / forward |
-| Alt + 1–9 | Switch tab |
-| Alt + Shift + I | Developer tools |
-| Alt + H / J | History / downloads |
-| Alt + , | Settings |
-| Alt + Shift + N | Stealth mode |
-
-## Notes
-
-- Ad blocking stays **off** until you enable it in Settings → Privacy.
-- The lock password is hashed locally. There is no recovery.
-- WebSockets tunnel through `/api/ws` while the Node/Vite server is running (`npm start`). Serverless hosts cannot keep a socket open.
+`veil://settings` · `veil://history` · `veil://downloads` · `veil://files` ·
+`veil://bookmarks` · `veil://shortcuts` · `veil://passwords` · `veil://about`

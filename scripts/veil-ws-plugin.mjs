@@ -26,12 +26,66 @@ function isBlockedHost(hostname) {
  * Live-preview WebSocket tunnel for proxied pages. The client hook rewrites
  * `new WebSocket(url)` to `/api/ws?u=…&tab=…`. Production serverless cannot
  * hold a socket; `npm start` (Vite) can.
+ *
+ * Also rewrites leaked same-origin paths (`/assets/foo.png` from a proxied
+ * document) onto `/p/{code}/{tab}/?__veil_leak=…` so the handler can resolve
+ * them against the real site origin.
  */
 export function veilWsPlugin() {
   return {
     name: "veil-ws-proxy",
     apply: "serve",
     configureServer(server) {
+      const APP_PREFIXES = [
+        "/src/",
+        "/@",
+        "/node_modules",
+        "/api/",
+        "/hacker114",
+        "/veil-sw",
+        "/p/",
+      ];
+      function isAppPath(pathOnly) {
+        return APP_PREFIXES.some((p) => pathOnly.startsWith(p) || pathOnly === p.replace(/\/$/, ""));
+      }
+      function proxyBits(ref) {
+        try {
+          const refUrl = new URL(ref);
+          const bits = refUrl.pathname.split("/").filter(Boolean);
+          if (bits[0] !== "p" || bits.length < 3) return null;
+          return { code: bits[1], tab: bits[2] };
+        } catch {
+          return null;
+        }
+      }
+      server.middlewares.use((req, _res, next) => {
+        try {
+          const raw = req.url ?? "/";
+          const pathOnly = raw.split("?", 1)[0] ?? "/";
+          const ref = String(req.headers.referer || req.headers.referrer || "");
+          const parent = proxyBits(ref);
+          if (!parent) {
+            next();
+            return;
+          }
+          if (isAppPath(pathOnly)) {
+            next();
+            return;
+          }
+          const dest = String(req.headers["sec-fetch-dest"] || "").toLowerCase();
+          const isTopDocument = dest === "document" && pathOnly === "/" && !ref.includes("/p/");
+          if (isTopDocument) {
+            next();
+            return;
+          }
+          const leak = pathOnly + (raw.includes("?") ? raw.slice(raw.indexOf("?")) : "");
+          req.url = `/p/${parent.code}/${parent.tab}/r?__veil_leak=${encodeURIComponent(leak)}`;
+        } catch {
+          /* fall through */
+        }
+        next();
+      });
+
       const wss = new WebSocketServer({ noServer: true });
       server.httpServer?.on("upgrade", (req, socket, head) => {
         const raw = req.url ?? "";

@@ -1,10 +1,10 @@
 import type { EngineId, NginxLayer } from "./types";
 
 export const CHROME_UA =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 export const CHROME_UA_MAC =
-  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36";
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
 
 const HOP_BY_HOP = new Set([
   "connection",
@@ -43,30 +43,34 @@ const STRIP_RESPONSE = new Set([
   "origin-agent-cluster",
 ]);
 
-export function chromeClientHints(stealth: boolean): Record<string, string> {
-  if (!stealth) {
-    return {
-      "sec-ch-ua": '"Chromium";v="129", "Not=A?Brand";v="8", "Google Chrome";v="129"',
-      "sec-ch-ua-mobile": "?0",
-      "sec-ch-ua-platform": '"Windows"',
-    };
+function uaForEngine(engine: EngineId, override: string): string {
+  if (override.trim()) return override.trim();
+  if (engine === "mercury") return CHROME_UA_MAC;
+  if (engine === "rammerhead") {
+    return "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:133.0) Gecko/20100101 Firefox/133.0";
   }
-  return {
-    "sec-ch-ua": '"Chromium";v="129", "Not=A?Brand";v="8", "Google Chrome";v="129"',
+  return CHROME_UA;
+}
+
+export function chromeClientHints(engine: EngineId, stealth: boolean): Record<string, string> {
+  if (engine === "rammerhead") {
+    return {};
+  }
+  const hints: Record<string, string> = {
+    "sec-ch-ua": '"Chromium";v="131", "Not_A Brand";v="24", "Google Chrome";v="131"',
     "sec-ch-ua-mobile": "?0",
-    "sec-ch-ua-platform": '"Windows"',
-    "sec-ch-ua-full-version-list":
-      '"Chromium";v="129.0.6668.90", "Not=A?Brand";v="10.0.0.4", "Google Chrome";v="129.0.6668.90"',
-    "sec-ch-ua-arch": '"x86"',
-    "sec-ch-ua-bitness": '"64"',
-    "sec-ch-ua-model": '""',
-    "sec-ch-ua-platform-version": '"15.0.0"',
-    "sec-fetch-dest": "document",
-    "sec-fetch-mode": "navigate",
-    "sec-fetch-site": "none",
-    "sec-fetch-user": "?1",
-    "upgrade-insecure-requests": "1",
+    "sec-ch-ua-platform": engine === "mercury" ? '"macOS"' : '"Windows"',
   };
+  if (stealth || engine === "ultraviolet" || engine === "scramjet") {
+    hints["sec-ch-ua-full-version-list"] =
+      '"Chromium";v="131.0.6778.86", "Not_A Brand";v="10.0.0.4", "Google Chrome";v="131.0.6778.86"';
+    hints["sec-ch-ua-arch"] = '"x86"';
+    hints["sec-ch-ua-bitness"] = '"64"';
+    hints["sec-ch-ua-model"] = '""';
+    hints["sec-ch-ua-platform-version"] = engine === "mercury" ? '"14.6.0"' : '"15.0.0"';
+    hints["upgrade-insecure-requests"] = "1";
+  }
+  return hints;
 }
 
 export function buildUpstreamHeaders(opts: {
@@ -90,25 +94,30 @@ export function buildUpstreamHeaders(opts: {
     out.set(key, value);
   });
 
-  const ua = nginx.userAgentOverride.trim() || CHROME_UA;
-  out.set("user-agent", ua);
+  out.set("user-agent", uaForEngine(engine, nginx.userAgentOverride));
   out.set("host", target.host);
   out.set("accept-language", stealth ? "en-US,en;q=0.9" : (incoming.get("accept-language") ?? "en-US,en;q=0.9"));
   if (!out.has("accept")) {
     out.set(
       "accept",
       isDocument
-        ? "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8"
+        ? "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7"
         : "*/*",
     );
   }
 
-  const hints = chromeClientHints(stealth || engine === "ultraviolet" || engine === "scramjet");
+  const hints = chromeClientHints(engine, stealth);
   for (const [k, v] of Object.entries(hints)) {
     if (k.startsWith("sec-fetch") && !isDocument) continue;
     out.set(k, v);
   }
-  if (!isDocument) {
+  if (isDocument) {
+    out.set("sec-fetch-dest", "document");
+    out.set("sec-fetch-mode", "navigate");
+    out.set("sec-fetch-site", "none");
+    out.set("sec-fetch-user", "?1");
+    out.set("upgrade-insecure-requests", "1");
+  } else {
     out.set("sec-fetch-dest", incoming.get("sec-fetch-dest") ?? "empty");
     out.set("sec-fetch-mode", incoming.get("sec-fetch-mode") ?? "cors");
     out.set("sec-fetch-site", "same-origin");
@@ -132,7 +141,7 @@ export function buildUpstreamHeaders(opts: {
   if (cookieHeader) out.set("cookie", cookieHeader);
   else out.delete("cookie");
 
-  if (nginx.forwardFor) {
+  if (nginx.forwardFor && engine === "nginx" && !stealth) {
     const ip = incoming.get("x-forwarded-for") ?? incoming.get("cf-connecting-ip") ?? "1.1.1.1";
     out.set("x-real-ip", ip.split(",")[0]!.trim());
     out.set("x-forwarded-for", ip.split(",")[0]!.trim());
@@ -152,7 +161,7 @@ export function buildUpstreamHeaders(opts: {
     out.set(k, v);
   }
 
-  if (stealth || engine === "ultraviolet" || engine === "rammerhead") {
+  if (stealth || engine === "ultraviolet" || engine === "rammerhead" || engine === "scramjet") {
     out.delete("x-forwarded-for");
     out.delete("x-real-ip");
     out.delete("via");
@@ -168,9 +177,7 @@ export function filterResponseHeaders(
   extraHide: string[] = [],
 ): Headers {
   const out = new Headers();
-  const hide = new Set(
-    [...nginx.extraHideHeaders, ...extraHide].map((h) => h.toLowerCase()),
-  );
+  const hide = new Set([...nginx.extraHideHeaders, ...extraHide].map((h) => h.toLowerCase()));
   if (nginx.hidePoweredBy) hide.add("x-powered-by");
   if (nginx.hideServer) hide.add("server");
 

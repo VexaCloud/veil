@@ -12,8 +12,6 @@
     "strict": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    // `src/lib/db.ts` imports scripts/migration-plan.mjs; checkJs types the
-    // implementation itself instead of a hand-written declaration beside it.
     "allowJs": true,
     "checkJs": true,
     "noEmit": true,
@@ -27,10 +25,11 @@
         "./src/*"
       ]
     },
+    "resolveJsonModule": true,
     "allowImportingTsExtensions": true
   },
   "include": [
     "src",
-    "server"
+    "supabase"
   ]
 }

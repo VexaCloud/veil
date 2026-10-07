@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SplatRouteImport } from './routes/$'
+import { Route as ApiJarRouteImport } from './routes/api/jar'
 import { Route as ApiSpeedRouteImport } from './routes/api/speed'
 import { Route as ApiWsRouteImport } from './routes/api/ws'
 import { Route as PSplatRouteImport } from './routes/p.$'
@@ -17,6 +19,16 @@ import { Route as PSplatRouteImport } from './routes/p.$'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SplatRoute = SplatRouteImport.update({
+  id: '/$',
+  path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiJarRoute = ApiJarRouteImport.update({
+  id: '/api/jar',
+  path: '/api/jar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSpeedRoute = ApiSpeedRouteImport.update({
@@ -37,12 +49,16 @@ const PSplatRoute = PSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/api/jar': typeof ApiJarRoute
   '/api/speed': typeof ApiSpeedRoute
   '/api/ws': typeof ApiWsRoute
   '/p/$': typeof PSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/api/jar': typeof ApiJarRoute
   '/api/speed': typeof ApiSpeedRoute
   '/api/ws': typeof ApiWsRoute
   '/p/$': typeof PSplatRoute
@@ -50,20 +66,24 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$': typeof SplatRoute
+  '/api/jar': typeof ApiJarRoute
   '/api/speed': typeof ApiSpeedRoute
   '/api/ws': typeof ApiWsRoute
   '/p/$': typeof PSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/speed' | '/api/ws' | '/p/$'
+  fullPaths: '/' | '/$' | '/api/jar' | '/api/speed' | '/api/ws' | '/p/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/speed' | '/api/ws' | '/p/$'
-  id: '__root__' | '/' | '/api/speed' | '/api/ws' | '/p/$'
+  to: '/' | '/$' | '/api/jar' | '/api/speed' | '/api/ws' | '/p/$'
+  id: '__root__' | '/' | '/$' | '/api/jar' | '/api/speed' | '/api/ws' | '/p/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SplatRoute: typeof SplatRoute
+  ApiJarRoute: typeof ApiJarRoute
   ApiSpeedRoute: typeof ApiSpeedRoute
   ApiWsRoute: typeof ApiWsRoute
   PSplatRoute: typeof PSplatRoute
@@ -76,6 +96,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$': {
+      id: '/$'
+      path: '/$'
+      fullPath: '/$'
+      preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/jar': {
+      id: '/api/jar'
+      path: '/api/jar'
+      fullPath: '/api/jar'
+      preLoaderRoute: typeof ApiJarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/speed': {
@@ -104,6 +138,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SplatRoute: SplatRoute,
+  ApiJarRoute: ApiJarRoute,
   ApiSpeedRoute: ApiSpeedRoute,
   ApiWsRoute: ApiWsRoute,
   PSplatRoute: PSplatRoute,

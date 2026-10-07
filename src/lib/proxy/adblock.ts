@@ -1,130 +1,5 @@
-/** Compact built-in list (EasyList-inspired). Disabled unless the user turns blocking on. */
-export const BUILTIN_NETWORK_FILTERS: string[] = [
-  "||doubleclick.net^",
-  "||googlesyndication.com^",
-  "||googleadservices.com^",
-  "||googletagservices.com^",
-  "||googletagmanager.com^",
-  "||google-analytics.com^",
-  "||adservice.google.com^",
-  "||pagead2.googlesyndication.com^",
-  "||adsystem.com^",
-  "||amazon-adsystem.com^",
-  "||adnxs.com^",
-  "||adsrvr.org^",
-  "||adform.net^",
-  "||advertising.com^",
-  "||adsafeprotected.com^",
-  "||ads-twitter.com^",
-  "||ads.linkedin.com^",
-  "||ads.yahoo.com^",
-  "||ads.facebook.com^",
-  "||creative.ak.fbcdn.net^",
-  "||criteo.com^",
-  "||criteo.net^",
-  "||taboola.com^",
-  "||outbrain.com^",
-  "||scorecardresearch.com^",
-  "||quantserve.com^",
-  "||hotjar.com^",
-  "||hotjar.io^",
-  "||mouseflow.com^",
-  "||fullstory.com^",
-  "||mixpanel.com^",
-  "||segment.io^",
-  "||segment.com^",
-  "||newrelic.com^",
-  "||nr-data.net^",
-  "||sentry.io^",
-  "||facebook.net^",
-  "||connect.facebook.net^",
-  "||pixel.facebook.com^",
-  "||an.facebook.com^",
-  "||tr.snapchat.com^",
-  "||sc-static.net^",
-  "||ads.pinterest.com^",
-  "||log.pinterest.com^",
-  "||analytics.tiktok.com^",
-  "||ads.tiktok.com^",
-  "||ad.doubleclick.net^",
-  "||static.ads-twitter.com^",
-  "||tpc.googlesyndication.com^",
-  "||partner.googleadservices.com^",
-  "||pagead.l.doubleclick.net^",
-  "||securepubads.g.doubleclick.net^",
-  "||moatads.com^",
-  "||openx.net^",
-  "||pubmatic.com^",
-  "||rubiconproject.com^",
-  "||casalemedia.com^",
-  "||contextweb.com^",
-  "||bidswitch.net^",
-  "||smartadserver.com^",
-  "||serving-sys.com^",
-  "||2mdn.net^",
-  "||adroll.com^",
-  "||adgrx.com^",
-  "||bluekai.com^",
-  "||exelator.com^",
-  "||krxd.net^",
-  "||rlcdn.com^",
-  "||tapad.com^",
-  "||agkn.com^",
-  "||demdex.net^",
-  "||omtrdc.net^",
-  "||everesttech.net^",
-  "||ads.reddit.com^",
-  "||alb.reddit.com^",
-  "||carbonads.net^",
-  "||carbonads.com^",
-  "||buysellads.com^",
-  "||servedby-buysellads.com^",
-  "||popads.net^",
-  "||popcash.net^",
-  "||propellerads.com^",
-  "||adsterra.com^",
-  "||exoclick.com^",
-  "||juicyads.com^",
-  "||trafficjunky.net^",
-  "||adcash.com^",
-  "||adblade.com^",
-  "||adcolony.com^",
-  "||applovin.com^",
-  "||unityads.unity3d.com^",
-  "||chartbeat.com^",
-  "||chartbeat.net^",
-  "||parse.ly^",
-  "||parsely.com^",
-  "||optimizely.com^",
-  "||crazyegg.com^",
-  "||clicktale.net^",
-  "||inspectlet.com^",
-  "||luckyorange.com^",
-  "||yandex.ru/ads^",
-  "||mc.yandex.ru^",
-  "||aniview.com^",
-  "||spotxchange.com^",
-  "||teads.tv^",
-  "||yieldmo.com^",
-  "||media.net^",
-  "||indexww.com^",
-  "||sovrn.com^",
-  "||lijit.com^",
-  "/ads/",
-  "/ad-server/",
-  "/adserver/",
-  "/adservice",
-  "/advertisement",
-  "/pagead/",
-  "/pagead2/",
-  "/sponsor/",
-  "adsystem",
-  "adservice",
-  "doubleclick",
-  "googlesyndication",
-  "popunder",
-  "pop-under",
-];
+import { FiltersEngine, Request as AdRequest } from "@ghostery/adblocker";
+import easylist from "./easylist-network.txt?raw";
 
 export const BUILTIN_COSMETIC: string[] = [
   "#ad",
@@ -148,49 +23,67 @@ export const BUILTIN_COSMETIC: string[] = [
   "iframe[src*='doubleclick']",
   "iframe[src*='googlesyndication']",
   "ins.adsbygoogle",
+  "[id*='taboola']",
+  "[class*='taboola']",
+  "[id*='outbrain']",
+  "[class*='outbrain']",
 ];
 
-export type CompiledFilters = {
-  hosts: Set<string>;
-  hostSuffixes: string[];
-  pathIncludes: string[];
-};
+let engine: FiltersEngine | null = null;
 
-export function compileFilters(rules: string[]): CompiledFilters {
-  const hosts = new Set<string>();
-  const hostSuffixes: string[] = [];
-  const pathIncludes: string[] = [];
-  for (const raw of rules) {
-    const rule = raw.trim();
-    if (!rule || rule.startsWith("!") || rule.startsWith("[")) continue;
-    if (rule.startsWith("||") && rule.endsWith("^")) {
-      const host = rule.slice(2, -1).toLowerCase();
-      hosts.add(host);
-      hostSuffixes.push("." + host);
-      continue;
-    }
-    if (rule.startsWith("||")) {
-      const host = rule.slice(2).replace(/\^$/, "").toLowerCase();
-      hosts.add(host);
-      continue;
-    }
-    pathIncludes.push(rule.toLowerCase());
+export function getAdblockEngine(): FiltersEngine {
+  if (!engine) {
+    engine = FiltersEngine.parse(easylist);
   }
-  return { hosts, hostSuffixes, pathIncludes };
+  return engine;
 }
 
-export function matchesNetworkFilter(url: URL, compiled: CompiledFilters): boolean {
-  const host = url.hostname.toLowerCase();
-  if (compiled.hosts.has(host)) return true;
-  for (const suf of compiled.hostSuffixes) {
-    if (host.endsWith(suf)) return true;
-  }
-  const hay = (host + url.pathname + url.search).toLowerCase();
-  for (const p of compiled.pathIncludes) {
-    if (p && hay.includes(p.replace(/^\//, ""))) {
-      if (p.startsWith("/") && url.pathname.toLowerCase().includes(p.toLowerCase())) return true;
-      if (!p.startsWith("/") && hay.includes(p)) return true;
+function matchUrl(blocker: FiltersEngine, url: URL, sourceUrl?: string): boolean {
+  const { match } = blocker.match(
+    AdRequest.fromRawDetails({
+      url: url.href,
+      type: "xhr",
+      sourceUrl: sourceUrl || url.origin + "/",
+    }),
+  );
+  return match;
+}
+
+export function matchesNetworkFilter(
+  url: URL,
+  extraRules: string[] = [],
+  sourceUrl?: string,
+): boolean {
+  try {
+    if (matchUrl(getAdblockEngine(), url, sourceUrl)) return true;
+    if (extraRules.length) {
+      const extra = FiltersEngine.parse(extraRules.join("\n"));
+      return matchUrl(extra, url, sourceUrl);
     }
+    return false;
+  } catch {
+    return false;
   }
-  return false;
+}
+
+export function cosmeticSelectors(pageUrl: string, extraRules: string[] = []): string[] {
+  try {
+    const blocker = extraRules.length
+      ? FiltersEngine.parse(`${easylist}\n${extraRules.join("\n")}`)
+      : getAdblockEngine();
+    const { hostname } = new URL(pageUrl);
+    const result = blocker.getCosmeticsFilters({
+      url: pageUrl,
+      hostname,
+      domain: hostname,
+    });
+    const styles = result.styles ?? "";
+    const fromEngine = styles
+      .split("}")
+      .map((chunk) => chunk.split("{")[0]?.trim() ?? "")
+      .filter(Boolean);
+    return Array.from(new Set([...BUILTIN_COSMETIC, ...fromEngine])).slice(0, 400);
+  } catch {
+    return BUILTIN_COSMETIC;
+  }
 }
