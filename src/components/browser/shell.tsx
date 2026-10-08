@@ -143,7 +143,7 @@ function Chrome() {
       link.setAttribute("data-veil-favicon", "1");
       document.head.appendChild(link);
     }
-    link.href = tab.favicon || "/favicon.svg";
+    link.href = tab.favicon || "/favicon.png";
   }, [tab.title, tab.favicon, tab.url]);
 
   useEffect(() => {
