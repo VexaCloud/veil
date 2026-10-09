@@ -1,1 +1,0 @@
-export{s as getSupabase}from"./routes-BeX3G7Lq.js";
