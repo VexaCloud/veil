@@ -1,3 +1,5 @@
 .vercel
 .output
 .nitro
+node_modules
+dist
